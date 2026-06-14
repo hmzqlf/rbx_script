@@ -9,12 +9,27 @@ end
 local MacLib = loadstring(game:HttpGet("https://github.com/biggaboy212/Maclib/releases/latest/download/maclib.txt"))()
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
+
+local TrialLibrary
+pcall(function()
+    TrialLibrary = require(ReplicatedStorage:WaitForChild("SimpleWorld"):WaitForChild("Library"))
+end)
 
 local autoFarmEnabled = false
 local selectedWorld = "1"
 local selectedMob = nil
 local farmThread = nil
+
+local trialAutoEnabled = false
+local trialWaveLeave = 0
+local trialInProgress = false
+local trialLeaveRequested = false
+local trialKillRunning = false
+local currentTrialKey = nil
+local savedPosition = nil
+local returnAfterTrial = false
 
 local worldNames = {
     ["1"] = "Ninja Village",
@@ -138,6 +153,51 @@ local function HMZ_startAutoFarm()
     end)
 end
 
+local function HMZ_startTrialKillLoop(trialKey)
+    if trialKillRunning then return end
+    trialKillRunning = true
+    task.spawn(function()
+        while trialInProgress and trialAutoEnabled do
+            local arenas = workspace:FindFirstChild("TimeTrialArenas")
+            if arenas then
+                local arena = arenas:FindFirstChild(trialKey)
+                if arena then
+                    for _, desc in ipairs(arena:GetDescendants()) do
+                        if not (trialInProgress and trialAutoEnabled) then break end
+                        if not desc:IsA("Model") then continue end
+                        local initHP = HMZ_getHealthReal(desc)
+                        if initHP == nil or initHP < 1 then continue end
+                        local hrp = desc:FindFirstChild("HumanoidRootPart")
+                            or desc:FindFirstChild("Torso")
+                            or desc.PrimaryPart
+                        if not hrp then continue end
+                        HMZ_teleportTo(hrp.CFrame)
+                        local prevHP = initHP
+                        local died = false
+                        local conn = desc:GetAttributeChangedSignal("HealthReal"):Connect(function()
+                            local hp = HMZ_getHealthReal(desc)
+                            if not hp then return end
+                            if hp < 1 then
+                                died = true
+                            elseif prevHP < (initHP * 0.5) and hp >= (initHP * 0.9) then
+                                died = true
+                            end
+                            prevHP = hp
+                        end)
+                        local timeout = os.clock() + 20
+                        while not died and desc.Parent ~= nil and os.clock() < timeout and trialInProgress and trialAutoEnabled do
+                            task.wait(0.3)
+                        end
+                        conn:Disconnect()
+                    end
+                end
+            end
+            task.wait(0.5)
+        end
+        trialKillRunning = false
+    end)
+end
+
 local Window = MacLib:Window({
     Title = "HMZ Hub",
     Subtitle = "Auto Farm",
@@ -214,7 +274,112 @@ RightSection:Toggle({
     end,
 }, "AutoFarmToggle")
 
+local GamemodeTab = TabGroup:Tab({
+    Name = "Gamemode",
+    Image = "rbxassetid://10723407389",
+})
+
+local GamemodeLeft = GamemodeTab:Section({ Side = "Left" })
+local GamemodeRight = GamemodeTab:Section({ Side = "Right" })
+
+GamemodeLeft:Toggle({
+    Name = "Auto Trial",
+    Default = false,
+    Callback = function(value)
+        trialAutoEnabled = value
+        if not value then
+            trialInProgress = false
+            trialLeaveRequested = false
+        end
+    end,
+})
+
+GamemodeLeft:Slider({
+    Name = "Wave Leave (0 = off)",
+    Min = 0,
+    Max = 50,
+    Default = 0,
+    Increment = 1,
+    Callback = function(value)
+        trialWaveLeave = value
+    end,
+})
+
+GamemodeRight:Button({
+    Name = "Save Position",
+    Callback = function()
+        local hrp = HMZ_getHRP()
+        if hrp then
+            savedPosition = hrp.CFrame
+        end
+    end,
+})
+
+GamemodeRight:Toggle({
+    Name = "Return to saved position after trial",
+    Default = false,
+    Callback = function(value)
+        returnAfterTrial = value
+    end,
+})
+
+if TrialLibrary then
+    local joinBridge = TrialLibrary.getBridge("TimeTrialJoin")
+    local stateBridge = TrialLibrary.getBridge("TimeTrialState")
+    local leaveBridge = TrialLibrary.getBridge("TimeTrialLeave")
+    local activeBridge = TrialLibrary.getBridge("TimeTrialActiveStatus")
+    local endedBridge = TrialLibrary.getBridge("TimeTrialEnded")
+
+    if activeBridge then
+        activeBridge:Connect(function(count, scheduleData)
+            if not trialAutoEnabled then return end
+            if type(scheduleData) ~= "table" then return end
+            if scheduleData.IsOpen ~= true then return end
+            local key = scheduleData.OpenTrialKey
+            if type(key) ~= "string" or key == "" then return end
+            currentTrialKey = key
+            if joinBridge then
+                joinBridge:Fire("Join", key)
+            end
+        end)
+    end
+
+    if stateBridge then
+        stateBridge:Connect(function(state)
+            if not trialAutoEnabled then return end
+            if not trialInProgress and not trialLeaveRequested then
+                trialInProgress = true
+                if currentTrialKey then
+                    HMZ_startTrialKillLoop(currentTrialKey)
+                end
+            end
+            if trialWaveLeave > 0 and state.Room >= trialWaveLeave and trialInProgress and not trialLeaveRequested then
+                trialLeaveRequested = true
+                trialInProgress = false
+                if leaveBridge then
+                    leaveBridge:Fire()
+                end
+            end
+        end)
+    end
+
+    if endedBridge then
+        endedBridge:Connect(function(key, reason)
+            trialInProgress = false
+            trialKillRunning = false
+            trialLeaveRequested = false
+            if reason == "returned" and returnAfterTrial and savedPosition then
+                task.wait(1.5)
+                HMZ_teleportTo(savedPosition)
+            end
+        end)
+    end
+end
+
 _G.AutoFarmCleanup = function()
     HMZ_stopAutoFarm()
+    trialAutoEnabled = false
+    trialInProgress = false
+    trialLeaveRequested = false
     pcall(function() Window:Unload() end)
 end
