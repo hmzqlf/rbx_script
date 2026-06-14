@@ -107,26 +107,18 @@ local function HMZ_startAutoFarm()
                 farmedAny = true
 
                 local initHP = HMZ_getHealthReal(enemy)
-                print("[HMZ] Cible :", enemy.Name, "| HealthReal initial :", initHP)
 
                 HMZ_teleportTo(rootPart.CFrame)
 
                 local died = false
                 local prevHP = initHP
 
-                local allAttrConn = enemy.AttributeChanged:Connect(function(attrName)
-                    print("[HMZ] Attr changé:", attrName, "=", enemy:GetAttribute(attrName))
-                end)
-
                 local attrConn = enemy:GetAttributeChangedSignal("HealthReal"):Connect(function()
                     local hp = HMZ_getHealthReal(enemy)
                     if not hp then return end
-                    print("[HMZ] HealthReal:", prevHP, "->", hp)
                     if hp < 1 then
-                        print("[HMZ] Mort détectée : HealthReal < 1")
                         died = true
                     elseif prevHP ~= nil and prevHP < (initHP * 0.5) and hp >= (initHP * 0.9) then
-                        print("[HMZ] Mort détectée : reset HP (", prevHP, "->", hp, ")")
                         died = true
                     end
                     prevHP = hp
@@ -136,9 +128,7 @@ local function HMZ_startAutoFarm()
                     task.wait(0.3)
                 end
 
-                print("[HMZ] Sortie boucle | died:", died, "| enemy.Parent:", enemy.Parent ~= nil)
                 attrConn:Disconnect()
-                allAttrConn:Disconnect()
             end
 
             if not farmedAny then
