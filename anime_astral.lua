@@ -296,10 +296,10 @@ GamemodeLeft:Toggle({
 
 GamemodeLeft:Slider({
     Name = "Wave Leave (0 = off)",
-    Min = 0,
-    Max = 50,
+    Minimum = 0,
+    Maximum = 50,
     Default = 0,
-    Increment = 1,
+    DisplayMethod = "Round",
     Callback = function(value)
         trialWaveLeave = value
     end,
