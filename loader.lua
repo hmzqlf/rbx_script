@@ -1,5 +1,46 @@
 local GITHUB_BASE = (getgenv and getgenv().HMZ_GITHUB_BASE) or "https://raw.githubusercontent.com/hmzqlf/rbx_script/main/HmzHub"
 
+local function hmzFetch(url)
+	local token = getgenv and getgenv().HMZ_GITHUB_TOKEN
+	local reqFn = (syn and syn.request) or (http and http.request) or (fluxus and fluxus.request) or request
+	if token and reqFn then
+		local ok, res = pcall(function()
+			return reqFn({
+				Url = url,
+				Method = "GET",
+				Headers = {
+					Authorization = "token " .. token,
+					Accept = "application/vnd.github.raw",
+				},
+			})
+		end)
+		if ok and res then
+			local body = res.Body or res.body
+			local code = res.StatusCode or res.status or res.Status
+			if type(body) == "string" and #body > 0 and (code == 200 or code == nil) then
+				return body
+			end
+		end
+	end
+	local ok, body = pcall(function()
+		return game:HttpGet(url)
+	end)
+	if ok and type(body) == "string" and #body > 0 then
+		return body
+	end
+	return nil
+end
+
+local function validateBody(body, url)
+	if not body or #body == 0 then
+		error("[HMZ Hub] Empty response: " .. url)
+	end
+	if body:sub(1, 3) == "404" or body:find("<!DOCTYPE", 1, true) or body:find("<html", 1, true) then
+		error("[HMZ Hub] GitHub inaccessible: " .. url .. " (repo privé → token ou readfile local)")
+	end
+	return body
+end
+
 local REGISTRY = {
 	anime_astral = {
 		Name = "Anime Astral",
@@ -43,18 +84,9 @@ local function fetchSource(rel)
 	end
 	if GITHUB_BASE and GITHUB_BASE ~= "" then
 		local url = GITHUB_BASE .. "/" .. rel .. ".lua"
-		local ok, body = pcall(function()
-			return game:HttpGet(url)
-		end)
-		if ok and type(body) == "string" and #body > 0 then
-			if body:sub(1, 3) == "404" or body:find("<!DOCTYPE", 1, true) or body:find("<html", 1, true) then
-				error("[HMZ Hub] GitHub 404: " .. url .. " (repo public ? fichiers pushes ?)")
-			end
-			return body
-		end
-		error("[HMZ Hub] HttpGet failed: " .. url)
+		return validateBody(hmzFetch(url), url)
 	end
-	error("[HMZ Hub] Missing module: " .. rel .. " (local file or GITHUB_BASE)")
+	error("[HMZ Hub] Missing module: " .. rel)
 end
 
 local function loadModule(rel)
