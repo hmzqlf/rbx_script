@@ -47,6 +47,9 @@ local function fetchSource(rel)
 			return game:HttpGet(url)
 		end)
 		if ok and type(body) == "string" and #body > 0 then
+			if body:sub(1, 3) == "404" or body:find("<!DOCTYPE", 1, true) or body:find("<html", 1, true) then
+				error("[HMZ Hub] GitHub 404: " .. url .. " (repo public ? fichiers pushes ?)")
+			end
 			return body
 		end
 		error("[HMZ Hub] HttpGet failed: " .. url)
