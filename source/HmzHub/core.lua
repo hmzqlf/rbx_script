@@ -243,8 +243,6 @@ function H.wrapSection(section)
 	return wrapped
 end
 
-local H.canRunFeature
-
 function H.getPromptPart(prompt)
 	local p = prompt.Parent
 	if p and p:IsA("BasePart") then return p end
@@ -633,7 +631,7 @@ function H.notify(title, desc, life)
 	end)
 end
 
-local H.DRAG = {
+H.DRAG = {
 	active = false,
 	input = nil,
 	start = nil,
