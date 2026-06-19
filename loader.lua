@@ -8,6 +8,16 @@ local REGISTRY = {
 	},
 }
 
+local function notify(text)
+	pcall(function()
+		game:GetService("StarterGui"):SetCore("SendNotification", {
+			Title = "HMZ Hub",
+			Text = text,
+			Duration = 5,
+		})
+	end)
+end
+
 local function resolveGame()
 	local pid, gid = game.PlaceId, game.GameId
 	for id, cfg in pairs(REGISTRY) do
@@ -22,6 +32,7 @@ end
 
 local gameId, gameCfg = resolveGame()
 if not gameId then
+	notify("Unsupported game")
 	warn("[HMZ Hub] Unsupported PlaceId=" .. tostring(game.PlaceId))
 	return
 end
@@ -40,7 +51,7 @@ local function fetchSource(rel)
 	local url = GITHUB_BASE .. "/" .. rel .. ".lua"
 	local body = game:HttpGet(url)
 	if not body or #body == 0 or body:sub(1, 3) == "404" or body:find("<!DOCTYPE", 1, true) then
-		error("[HMZ Hub] Failed to fetch: " .. url)
+		error("Failed to fetch: " .. url)
 	end
 	return body
 end
@@ -49,20 +60,27 @@ local function loadModule(rel)
 	local src = fetchSource(rel)
 	local fn, err = loadstring(src, "@" .. rel)
 	if not fn then
-		error("[HMZ Hub] Compile " .. rel .. ": " .. tostring(err))
+		error("Compile " .. rel .. ": " .. tostring(err))
 	end
 	return fn()
 end
 
-local H = loadModule("core")
-H.GameId = gameId
-H.GameCfg = gameCfg
-H.ConfigPath = "HMZHub/" .. gameId .. "/" .. game:GetService("Players").LocalPlayer.Name .. ".json"
+local ok, err = pcall(function()
+	local H = loadModule("core")
+	H.GameId = gameId
+	H.GameCfg = gameCfg
+	H.ConfigPath = "HMZHub/" .. gameId .. "/" .. game:GetService("Players").LocalPlayer.Name .. ".json"
 
-loadModule(gameCfg.Module)(H)
+	loadModule(gameCfg.Module)(H)
 
-H.loadConfig()
-H.initWindow()
-H.buildUI()
-H.restoreAll()
-H.notify("HMZ Hub", "Loaded " .. gameCfg.Name, 5)
+	H.loadConfig()
+	H.initWindow()
+	H.buildUI()
+	H.restoreAll()
+	H.notify("HMZ Hub", "Loaded " .. gameCfg.Name, 5)
+end)
+
+if not ok then
+	warn("[HMZ Hub] " .. tostring(err))
+	notify(tostring(err))
+end

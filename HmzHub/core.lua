@@ -41,7 +41,8 @@ local H = {
 H.LocalPlayer = H.Services.Players.LocalPlayer
 local Workspace = H.Services.Workspace
 local TeleportService = H.Services.TeleportService
-local HttpService = H.Services.HttpService
+local UserInputService = H.Services.UserInputService
+local LocalPlayer = H.LocalPlayer
 
 function H.canSave()
 	return not H.Restoring and writefile ~= nil
@@ -242,8 +243,6 @@ function H.wrapSection(section)
 	end
 	return wrapped
 end
-
-local H.canRunFeature
 
 function H.getPromptPart(prompt)
 	local p = prompt.Parent
@@ -625,15 +624,7 @@ function H.restoreAll()
 	end)
 end
 
-function H.notify(title, desc, life)
-	if not Window then return end
-	if H.Cache.Notifications == false then return end
-	pcall(function()
-		H.Window:Notify({ Title = title, Description = desc, Lifetime = life or 4 })
-	end)
-end
-
-local H.DRAG = {
+H.DRAG = {
 	active = false,
 	input = nil,
 	start = nil,
@@ -779,14 +770,6 @@ function H.start(key, interval, fn)
 		H.Threads[key] = nil
 	end)
 end
-
-H.FarmStateKeys = H.FarmStateKeys or = {
-	AutoFarmMob = true,
-	FarmTrial = true,
-	FarmRaid = true,
-	FarmDefense = true,
-	FarmGate = true,
-}
 
 function H.restoreCharacter()
 	local hum = H.humanoid()

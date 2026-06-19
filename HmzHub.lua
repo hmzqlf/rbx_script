@@ -10,14 +10,18 @@ getgenv().HmzHub_Executed = true
 
 local Hub = "HMZ Hub"
 local Discord_Invite = ""
-
-local UI_LOADER = "https://raw.githubusercontent.com/hmzqlf/rbx_script/main/HmzLoader.lua"
+local HUB_URL = "https://raw.githubusercontent.com/hmzqlf/rbx_script/main/loader.lua"
 
 local Scripts = {
 	[168519468] = { name = "Anime Astral" },
 }
 
-local current = Scripts[game.CreatorId]
+local Places = {
+	[113236157544232] = true,
+	[9797806474] = true,
+}
+
+local current = Scripts[game.CreatorId] or (Places[game.PlaceId] or Places[game.GameId]) and { name = "Anime Astral" }
 if not current then
 	pcall(function()
 		game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -33,24 +37,32 @@ getgenv().HmzHub = {
 	hub = Hub,
 	discord = Discord_Invite,
 	name = current.name,
-	autoLoad = false,
-	hubUrl = "https://raw.githubusercontent.com/hmzqlf/rbx_script/main/loader.lua",
+	hubUrl = HUB_URL,
 }
 
-local src = game:HttpGet(UI_LOADER)
-if not src or #src == 0 or src:sub(1, 3) == "404" then
+local function notify(text)
 	pcall(function()
 		game:GetService("StarterGui"):SetCore("SendNotification", {
 			Title = Hub,
-			Text = "Loader download failed",
+			Text = text,
 			Duration = 5,
 		})
 	end)
-	return
 end
-local fn, err = loadstring(src)
-if not fn then
-	warn("[HMZ Hub] Loader compile: " .. tostring(err))
-	return
+
+local ok, err = pcall(function()
+	local src = game:HttpGet(HUB_URL)
+	if not src or #src == 0 or src:sub(1, 3) == "404" then
+		error("download failed")
+	end
+	local fn, cerr = loadstring(src)
+	if not fn then
+		error(cerr or "compile failed")
+	end
+	fn()
+end)
+
+if not ok then
+	warn("[HMZ Hub] " .. tostring(err))
+	notify("Load failed: " .. tostring(err))
 end
-fn()

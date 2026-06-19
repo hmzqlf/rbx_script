@@ -37,7 +37,6 @@ return function(H)
 		if ok then return res end
 		return nil
 	end
-	local H.canRunFeature
 	
 	function H.getPromptPart(prompt)
 		local p = prompt.Parent
@@ -313,7 +312,7 @@ return function(H)
 	end
 	
 	
-	local H.CODES = {
+	H.CODES = {
 		"UPDATE2.5", "UPDATE2", "UPDATE1.5", "UPDATE1", "RELEASE",
 		"10MVISITS", "9.5MVISITS", "8MVISITS", "7.5MVISITS", "7MVISITS", "6.5MVISITS",
 		"3.5MVISITS", "3MVISITS", "1.5MVISITS", "1MVISITS",
@@ -414,10 +413,10 @@ return function(H)
 		end
 	end
 	
-	local H.LeaveModes = {}
-	local H.LeaveStateKeys = {}
-	
-	local H.LEAVE_SOURCES = {
+	H.LeaveModes = {}
+	H.LeaveStateKeys = {}
+
+	H.LEAVE_SOURCES = {
 		{ config = "TimeTrialConfig", getAll = "GetAllTrials", category = "Trial", stateKey = "TrialState", activeKey = "TrialActiveKey", field = "Room", leaveBridge = "TimeTrialLeave", idFields = { "TrialKey", "Key", "Id" }, unit = "Room", progressKey = "TotalRooms" },
 		{ config = "RaidConfig", getAll = "GetAllRaids", category = "Raid", stateKey = "RaidState", activeKey = "RaidActiveKey", field = "Wave", leaveBridge = "RaidLeave", idFields = { "RaidKey", "Key", "ActiveKey", "Id" }, unit = "Wave", progressKey = "TotalWaves", categoryFn = function(configId)
 			if configId == "World5" then return "Gate" end
@@ -810,7 +809,7 @@ return function(H)
 		for _, m in ipairs(enemies) do
 			local th = m:FindFirstChild("HumanoidRootPart")
 			if th and (Vector3.new(origin.X, th.Position.Y, origin.Z) - th.Position).Magnitude <= radius then
-				count += 1
+				count = count + 1
 			end
 		end
 		return count
@@ -927,7 +926,7 @@ return function(H)
 		return nil
 	end
 	
-	local H.PRIORITY_ORDER = {
+	H.PRIORITY_ORDER = {
 		"Trial",
 		"Gate",
 		"Crow",
@@ -1058,7 +1057,7 @@ return function(H)
 		return S.AutoFarmMob == true
 	end
 	
-	local H.WANTS = {
+	H.WANTS = {
 		Trial = H.wantsTrial,
 		Gate = H.wantsGate,
 		Crow = H.wantsCrow,
