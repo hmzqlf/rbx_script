@@ -68,6 +68,8 @@ local Workspace = H.Services.Workspace
 local TeleportService = H.Services.TeleportService
 local UserInputService = H.Services.UserInputService
 local LocalPlayer = H.LocalPlayer
+local S = H.S
+local Cache = H.Cache
 
 function H.canSave()
 	return not H.Restoring and writefile ~= nil
