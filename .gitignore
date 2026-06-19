@@ -2,3 +2,6 @@
 *.local.json
 HmzHub.standalone.lua
 source/
+loader.lua
+HmzLoader.lua
+HmzHub/
