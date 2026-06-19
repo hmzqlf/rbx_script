@@ -1,6 +1,11 @@
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $version = (git -C $root rev-parse HEAD).Trim()
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+
+function Write-Utf8NoBom([string]$Path, [string]$Content) {
+	[System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
 
 $core = Get-Content (Join-Path $root "source\HmzHub\core.lua") -Raw
 $game = Get-Content (Join-Path $root "source\HmzHub\games\anime_astral.lua") -Raw
@@ -113,7 +118,30 @@ H.restoreAll()
 H.notify("HMZ Hub", "Loaded " .. gameCfg.Name, 5)
 "@
 
-$out = $header + $body + $footer
-Set-Content -Path (Join-Path $root "HmzHub.lua") -Value $out -NoNewline -Encoding UTF8
-Set-Content -Path (Join-Path $root "VERSION") -Value $version -NoNewline -Encoding UTF8
-Write-Host "Built HmzHub.lua ($version)"
+$hubOut = $header + $body + $footer
+Write-Utf8NoBom (Join-Path $root "HmzHub.lua") $hubOut
+Write-Utf8NoBom (Join-Path $root "VERSION") $version
+
+$load = @"
+getgenv().HmzHub_Executed = nil
+local url = "https://raw.githubusercontent.com/hmzqlf/rbx_script/$version/HmzHub.lua"
+local src = game:HttpGet(url)
+if not src or #src < 10000 then
+	warn("[HMZ Hub] Download failed (" .. tostring(#src) .. " bytes). Update Load.lua")
+	return
+end
+if src:byte(1) == 239 and src:byte(2) == 187 and src:byte(3) == 191 then
+	src = src:sub(4)
+end
+local fn, err = loadstring(src)
+if not fn then
+	warn("[HMZ Hub] " .. tostring(err))
+	return
+end
+fn()
+"@
+
+Write-Utf8NoBom (Join-Path $root "Load.lua") $load
+Write-Host "Built HmzHub.lua + Load.lua ($version)"
+Write-Host ""
+Write-Host "loadstring(game:HttpGet('https://raw.githubusercontent.com/hmzqlf/rbx_script/main/Load.lua'))()"

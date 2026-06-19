@@ -1,4 +1,4 @@
-﻿if not game:IsLoaded() then
+if not game:IsLoaded() then
 	game.Loaded:Wait()
 end
 task.wait(math.random())
