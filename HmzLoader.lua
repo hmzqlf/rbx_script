@@ -42,7 +42,15 @@ local function runHub()
 	end
 
 	local ok, err = pcall(function()
-		loadstring(game:HttpGet(cfg.hubUrl))()
+		local src = game:HttpGet(cfg.hubUrl)
+		if not src or #src == 0 or src:sub(1, 3) == "404" then
+			error("download failed")
+		end
+		local fn, cerr = loadstring(src)
+		if not fn then
+			error(cerr or "compile failed")
+		end
+		fn()
 	end)
 	if not ok then
 		notify(cfg.hub, "Load failed", 5)

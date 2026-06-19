@@ -45,9 +45,9 @@ $preset = if ($env:PROMETHEUS_PRESET) { $env:PROMETHEUS_PRESET } else { "Medium"
 $entryPreset = if ($env:PROMETHEUS_ENTRY_PRESET) { $env:PROMETHEUS_ENTRY_PRESET } else { "Weak" }
 
 $jobs = @(
-	@{ In = "source\HmzHub.lua"; Out = "HmzHub.lua"; Preset = $entryPreset },
-	@{ In = "source\HmzLoader.lua"; Out = "HmzLoader.lua"; Preset = $entryPreset },
-	@{ In = "source\loader.lua"; Out = "loader.lua"; Preset = $entryPreset },
+	@{ In = "source\HmzHub.lua"; Out = "HmzHub.lua"; Copy = $true },
+	@{ In = "source\HmzLoader.lua"; Out = "HmzLoader.lua"; Copy = $true },
+	@{ In = "source\loader.lua"; Out = "loader.lua"; Copy = $true },
 	@{ In = "source\HmzHub\core.lua"; Out = "HmzHub\core.lua"; Preset = $preset },
 	@{ In = "source\HmzHub\games\anime_astral.lua"; Out = "HmzHub\games\anime_astral.lua"; Preset = $preset }
 )
@@ -58,8 +58,17 @@ foreach ($job in $jobs) {
 	if (-not (Test-Path $in)) {
 		throw "Missing source file: $in"
 	}
-	Write-Host "Obfuscating $($job.In) -> $($job.Out) [$($job.Preset)]"
-	Invoke-Obfuscate -InputPath $in -OutputPath $out -Preset $job.Preset
+	if ($job.Copy) {
+		Write-Host "Copying $($job.In) -> $($job.Out)"
+		$dir = Split-Path -Parent $out
+		if ($dir -and -not (Test-Path $dir)) {
+			New-Item -ItemType Directory -Force -Path $dir | Out-Null
+		}
+		Copy-Item $in $out -Force
+	} else {
+		Write-Host "Obfuscating $($job.In) -> $($job.Out) [$($job.Preset)]"
+		Invoke-Obfuscate -InputPath $in -OutputPath $out -Preset $job.Preset
+	}
 }
 
 Write-Host "Done. Commit and push obfuscated files only (source/ stays local)."

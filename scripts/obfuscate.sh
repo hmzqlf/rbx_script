@@ -2,7 +2,6 @@
 set -euo pipefail
 
 PRESET="${PROMETHEUS_PRESET:-Medium}"
-ENTRY_PRESET="${PROMETHEUS_ENTRY_PRESET:-Weak}"
 CLI="${PROMETHEUS_CLI:-prometheus-lua}"
 
 obf() {
@@ -13,8 +12,15 @@ obf() {
   "$CLI" --LuaU --preset "$preset" --nocolors --out "$out" "$in"
 }
 
-obf "source/HmzHub.lua" "HmzHub.lua" "$ENTRY_PRESET"
-obf "source/HmzLoader.lua" "HmzLoader.lua" "$ENTRY_PRESET"
-obf "source/loader.lua" "loader.lua" "$ENTRY_PRESET"
+copy() {
+  local in="$1"
+  local out="$2"
+  mkdir -p "$(dirname "$out")"
+  cp "$in" "$out"
+}
+
+copy "source/HmzHub.lua" "HmzHub.lua"
+copy "source/HmzLoader.lua" "HmzLoader.lua"
+copy "source/loader.lua" "loader.lua"
 obf "source/HmzHub/core.lua" "HmzHub/core.lua" "$PRESET"
 obf "source/HmzHub/games/anime_astral.lua" "HmzHub/games/anime_astral.lua" "$PRESET"

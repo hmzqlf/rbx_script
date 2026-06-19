@@ -11,7 +11,7 @@ getgenv().HmzHub_Executed = true
 local Hub = "HMZ Hub"
 local Discord_Invite = ""
 
-local UI_LOADER = "https://raw.githubusercontent.com/hmzqlf/rbx_script/main/HmzLoader"
+local UI_LOADER = "https://raw.githubusercontent.com/hmzqlf/rbx_script/main/HmzLoader.lua"
 
 local Scripts = {
 	[168519468] = { name = "Anime Astral" },
@@ -37,4 +37,20 @@ getgenv().HmzHub = {
 	hubUrl = "https://raw.githubusercontent.com/hmzqlf/rbx_script/main/loader.lua",
 }
 
-loadstring(game:HttpGet(UI_LOADER))()
+local src = game:HttpGet(UI_LOADER)
+if not src or #src == 0 or src:sub(1, 3) == "404" then
+	pcall(function()
+		game:GetService("StarterGui"):SetCore("SendNotification", {
+			Title = Hub,
+			Text = "Loader download failed",
+			Duration = 5,
+		})
+	end)
+	return
+end
+local fn, err = loadstring(src)
+if not fn then
+	warn("[HMZ Hub] Loader compile: " .. tostring(err))
+	return
+end
+fn()
